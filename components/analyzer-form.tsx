@@ -22,8 +22,8 @@ export function AnalyzerForm({
   isLoading,
 }: AnalyzerFormProps) {
   const trimmedLength = value.length;
-  const isDisabled =
-    isLoading || trimmedLength === 0 || trimmedLength > MAX_INPUT_LENGTH;
+  const isOverLimit = trimmedLength > MAX_INPUT_LENGTH;
+  const isDisabled = isLoading || trimmedLength === 0 || isOverLimit;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,9 +43,22 @@ export function AnalyzerForm({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="ここに文章を貼り付けてください（最大2000文字）"
-        className="min-h-40 resize-none bg-white/70 text-base"
+        className="min-h-40 max-h-96 resize-none overflow-y-auto bg-white/70 text-base"
         disabled={isLoading}
+        aria-invalid={isOverLimit}
+        aria-describedby={isOverLimit ? "source-text-error" : undefined}
       />
+      {isOverLimit && (
+        <p
+          id="source-text-error"
+          role="alert"
+          className="mt-2 text-sm font-medium text-red-600"
+        >
+          {(trimmedLength - MAX_INPUT_LENGTH).toLocaleString("ja-JP")}
+          文字オーバーしています。{MAX_INPUT_LENGTH.toLocaleString("ja-JP")}
+          文字以内に短くしてください。
+        </p>
+      )}
       <div className="mt-2 flex items-center justify-between">
         <CharCounter length={trimmedLength} />
         <Button

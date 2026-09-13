@@ -12,11 +12,16 @@ async function importRoute() {
   return import("@/app/api/analyze/route");
 }
 
-function makeRequest(body: unknown) {
+function makeRequest(body: unknown, extraHeaders: Record<string, string> = {}) {
+  const payload = JSON.stringify(body);
   return new Request("http://localhost/api/analyze", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": String(Buffer.byteLength(payload)),
+      ...extraHeaders,
+    },
+    body: payload,
   });
 }
 
@@ -44,6 +49,14 @@ describe("POST /api/analyze", () => {
       makeRequest({ text: "あ".repeat(MAX_INPUT_LENGTH + 1) })
     );
     expect(response.status).toBe(400);
+    expect(analyzeWritingStyle).not.toHaveBeenCalled();
+  });
+
+  it("returns 413 when the request body is too large", async () => {
+    const { POST } = await importRoute();
+    // 日本語1文字はUTF-8で3バイトなので、10,000文字で上限(20,000バイト)を大きく超える
+    const response = await POST(makeRequest({ text: "あ".repeat(10_000) }));
+    expect(response.status).toBe(413);
     expect(analyzeWritingStyle).not.toHaveBeenCalled();
   });
 

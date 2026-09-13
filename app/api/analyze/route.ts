@@ -6,11 +6,21 @@ import type { AnalyzeRequestBody, AnalyzeSuccessResponse } from "@/lib/types";
 
 export const runtime = "nodejs";
 
+// 2000文字(UTF-8で最大約6000バイト)のJSONペイロードとして十分な余裕を持たせた上限。
+// Content-Length を騙る/省略するリクエストは通過しうるが、素朴な巨大ペイロードによる
+// リソース消費を安価に防ぐための多層防御として設定している。
+const MAX_REQUEST_BODY_BYTES = 20_000;
+
 function errorResponse(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
 export async function POST(request: Request) {
+  const contentLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BODY_BYTES) {
+    return errorResponse("リクエストサイズが大きすぎます。", 413);
+  }
+
   let body: unknown;
   try {
     body = await request.json();

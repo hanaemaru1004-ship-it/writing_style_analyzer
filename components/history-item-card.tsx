@@ -60,7 +60,7 @@ export function HistoryItemCard({
             event.stopPropagation();
             onRemove(item.id);
           }}
-          className="absolute top-2 right-2 rounded-lg p-1 opacity-0 transition-all duration-200 group-hover:opacity-100 hover:scale-110 hover:bg-white/60"
+          className="absolute top-1 right-1 flex h-8 w-8 items-center justify-center rounded-lg opacity-70 transition-all duration-200 hover:scale-110 hover:bg-white/60 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:outline-none sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
         >
           <Trash2 className="h-3.5 w-3.5 text-gray-600" />
         </button>

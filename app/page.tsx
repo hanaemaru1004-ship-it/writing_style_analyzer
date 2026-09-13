@@ -86,10 +86,16 @@ export default function Home() {
     if (currentResult?.id === id) setCurrentResult(null);
   }
 
+  function handleReset() {
+    setInputText("");
+    setCurrentResult(null);
+    setErrorMessage(null);
+  }
+
   return (
     <div className="min-h-screen">
       <BackgroundLayers />
-      <AppHeader />
+      <AppHeader onReset={handleReset} />
 
       <main className="relative z-10 mx-auto max-w-5xl px-4 pt-28 pb-16 sm:px-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
@@ -112,7 +118,9 @@ export default function Home() {
             )}
 
             {isLoading && <LoadingIndicator />}
-            {!isLoading && currentResult && <ResultView result={currentResult} />}
+            {!isLoading && currentResult && (
+              <ResultView result={currentResult} onReset={handleReset} />
+            )}
             {!isLoading && !currentResult && <EmptyState />}
           </div>
 

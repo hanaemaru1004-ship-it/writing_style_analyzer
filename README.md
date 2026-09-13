@@ -75,13 +75,20 @@ GEMINT_API_KEY="your-api-key"
 
 | コンポーネント | 役割 |
 | --- | --- |
-| `AppHeader` | Glassmorphism ヘッダー、ブランドロゴ |
+| `AppHeader` | Glassmorphism ヘッダー、ブランドロゴ。クリックでトップ（初期状態）に戻る |
 | `FreeTierNotice` | 無料枠利用に関する告知バナー |
-| `AnalyzerForm` | 文章入力・文字数カウンター・分析実行ボタン |
+| `AnalyzerForm` | 文章入力・文字数カウンター・分析実行ボタン。上限超過時はエラーメッセージを表示 |
 | `LoadingIndicator` | 分析中のバウンスアニメーション |
-| `ResultView` | Markdown 分析結果の表示・コピー |
+| `ResultView` | Markdown 分析結果の表示・コピー・「新しく分析する」でトップに戻る |
 | `EmptyState` | 初回表示時のウェルカム画面（機能紹介グリッド） |
 | `HistoryPanel` / `HistoryItemCard` | 分析履歴の一覧・選択・削除 |
+
+### トップページへ戻る導線
+
+単一ページアプリのため、以下の2箇所から入力前の状態（テキスト・結果・エラーをクリア、履歴は保持）に戻れます。
+
+- ヘッダーのロゴ／タイトルをクリック
+- 結果表示中の「新しく分析する」ボタン
 
 ### マイクロインタラクション
 
@@ -104,4 +111,7 @@ localStorage キー `writing-style-analyzer:history` に、最新5件の分析�
 
 ## セキュリティ
 
-Gemini API キーはサーバーサイド（`app/api/analyze/route.ts` → `lib/gemini.ts`）でのみ参照し、クライアントバンドルに含めないよう `server-only` パッケージでガードしています。
+- Gemini API キーはサーバーサイド（`app/api/analyze/route.ts` → `lib/gemini.ts`）でのみ参照し、クライアントバンドルに含めないよう `server-only` パッケージでガードしています。
+- `/api/analyze` は入力文字列の型・空文字・最大文字数（2000文字）を検証し、`Content-Length` が異常に大きいリクエストは本文を読む前に `413` で拒否します（素朴な巨大ペイロードによるリソース消費対策）。
+- Gemini の応答は `react-markdown` でレンダリングしており、HTML の生埋め込み（`rehype-raw` 等）は使用していないため、応答内に含まれる HTML/スクリプトはエスケープされ実行されません。
+- 分析対象の文章はユーザーが入力した任意のテキストであり、プロンプトインジェクションの入力元にもなり得ますが、本アプリはツール実行や機密情報へのアクセスを Gemini に与えていないため影響範囲は限定的です。

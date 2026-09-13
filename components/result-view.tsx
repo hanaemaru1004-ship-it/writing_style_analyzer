@@ -1,7 +1,9 @@
+import { RotateCcw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { CopyButton } from "@/components/copy-button";
+import { Button } from "@/components/ui/button";
 import { findThemeColor } from "@/lib/constants";
 import type { AnalysisResult } from "@/lib/types";
 
@@ -12,7 +14,12 @@ function formatDate(iso: string) {
   });
 }
 
-export function ResultView({ result }: { result: AnalysisResult }) {
+interface ResultViewProps {
+  result: AnalysisResult;
+  onReset: () => void;
+}
+
+export function ResultView({ result, onReset }: ResultViewProps) {
   const theme = findThemeColor(result.themeColor);
 
   return (
@@ -33,7 +40,19 @@ export function ResultView({ result }: { result: AnalysisResult }) {
             {formatDate(result.createdAt)}
           </span>
         </div>
-        <CopyButton text={result.markdown} />
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onReset}
+            className="gap-1.5 rounded-xl border-white/40 bg-white/40 backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:bg-white/60"
+          >
+            <RotateCcw className="h-4 w-4" />
+            新しく分析する
+          </Button>
+          <CopyButton text={result.markdown} />
+        </div>
       </div>
       <div className="prose prose-sm sm:prose-base prose-headings:font-semibold prose-headings:text-gray-900 max-w-none text-gray-700">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
