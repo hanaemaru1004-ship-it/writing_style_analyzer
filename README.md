@@ -1,20 +1,54 @@
 # 文体アナライザー (writing_style_analyzer)
 
-文章を入力すると、Gemini AI がその文体を分析し、再現可能な「ライティングルール」を Markdown 形式で生成する Web アプリです。
+文章を貼り付けるだけで、Gemini AI がその文体の特徴を分析し、**再現可能な「ライティングルール」を Markdown 形式で生成する** Web アプリです。
 
-## セットアップ
+＊公開サイト：https://writing-style-analyzer-gold.vercel.app/
+
+## 1. アプリの概要
+
+### できること
+
+- 文章（最大2000文字）を入力して、文体のライティングルールを AI が自動生成
+- 分析結果を Markdown で表示し、ワンクリックでコピー
+- 過去の分析履歴を最大5件まで保存・再表示・削除（ブラウザの localStorage に保存。データベースは不使用）
+- 分析中はローディングアニメーションを表示
+
+### 特徴
+
+- ログイン・会員登録は不要
+- 入力した文章や履歴はサーバーに保存されない（履歴は自分のブラウザ内のみ）
+- Apple 風の Glassmorphism デザイン、スマホにも対応（ライトモードのみ）
+
+## 2. 対象ユーザー
+
+- 自分や好きな書き手の文体を言語化したいライター・ブロガー
+- 生成 AI に「この文体で書いて」と指示するためのルール（プロンプト素材）が欲しい人
+- 文章のトーンや表現を揃えたい編集者・広報・マーケター
+- 文体の特徴を学びたい学習者・学生
+
+## 3. 使用方法
+
+1. 入力欄に分析したい文章を貼り付ける（最大2000文字。文字数カウンターで確認できます）
+2. 「分析」ボタンを押す
+3. 生成されたライティングルール（Markdown）を確認し、必要なら「コピー」ボタンで取得する
+4. 右側（スマホでは下）の履歴から過去の結果を選んで見返せる
+5. 「新しく分析する」ボタン、またはヘッダーのロゴをクリックすると初期状態に戻る（履歴は保持されます）
+
+## 4. セットアップ（開発者向け）
 
 ```bash
 npm install
 ```
 
-`.env.local` に Gemini API キーを設定します（`NEXT_PUBLIC` プレフィックスは付けないこと）。
+`.env.local` に Gemini API キーを設定します（`NEXT_PUBLIC` プレフィックスは**付けないこと**）。
 
 ```
 GEMINT_API_KEY="your-api-key"
 ```
 
-## コマンド
+※ 変数名は `GEMINT_API_KEY`（綴りに注意）です。`GEMINI_API_KEY` もフォールバックとして読み込まれます。
+
+## 5. コマンド
 
 | コマンド | 内容 |
 | --- | --- |
@@ -25,14 +59,32 @@ GEMINT_API_KEY="your-api-key"
 | `npm run test` | Vitest（単体テストを1回実行） |
 | `npm run test:watch` | Vitest（ウォッチモード） |
 
-## 機能
+## 6. 使用技術
 
-- 文章入力（最大2000文字）からライティングルールを Gemini AI で生成
-- 分析結果を Markdown 形式で表示・ワンクリックコピー
-- 分析履歴を localStorage に保存（最大5件、データベースは使用しない）
-- 分析中のローディングアニメーション
+| 分野 | 技術 |
+| --- | --- |
+| フレームワーク | Next.js 16 (App Router) / React 19 |
+| 言語 | TypeScript（strict、`any` 禁止） |
+| スタイリング | Tailwind CSS v4（`app/globals.css` で設定、`tailwind.config` は不使用） |
+| UI コンポーネント | shadcn/ui（`components/ui/*`） |
+| AI | Gemini API（公式 SDK `@google/genai`、サーバー側の Route Handler からのみ呼び出し） |
+| Markdown 表示 | `react-markdown` + `remark-gfm` |
+| テスト | Vitest + React Testing Library |
+| データ保存 | ブラウザの localStorage（DB なし） |
 
-## Gemini モデルの選定
+### 処理の流れ
+
+```
+ブラウザ（入力フォーム）
+   ↓ POST /api/analyze
+Route Handler（入力検証）
+   ↓
+lib/gemini.ts（サーバー専用）→ Gemini API
+   ↓
+Markdown を返却 → 画面に表示 ＋ localStorage に履歴保存
+```
+
+### Gemini モデルの選定
 
 無料枠の範囲でレスポンスが速いモデルとして **`gemini-3.5-flash-lite`** を採用しています（`lib/constants.ts` の `GEMINI_MODEL`）。
 
@@ -45,15 +97,21 @@ GEMINT_API_KEY="your-api-key"
 
 本アプリは Gemini API の無料枠を利用しています。無料枠でのご利用内容は、Google のサービス改善のために利用される場合があります（画面上の通知バナーにも表示しています）。
 
-## 技術スタック
+### データ永続化
 
-- Next.js 16 (App Router) / React 19 / TypeScript（strict, any禁止）
-- Tailwind CSS v4（`app/globals.css` で設定、`tailwind.config` は使用しない）
-- shadcn/ui（`components/ui/*`）
-- Vitest + React Testing Library
-- `@google/genai`（Gemini API 公式 SDK、サーバーサイドの Route Handler からのみ呼び出し）
+localStorage キー `writing-style-analyzer:history` に、最新5件の分析結果（入力文・Markdown結果・テーマカラー・日時）を保存します（`lib/storage.ts`）。古いものから順に削除されます。
 
-## デザインシステム（Apple風 Glassmorphism）
+## 7. セキュリティ
+
+- **API キーの保護**: Gemini API キーはサーバーサイド（`app/api/analyze/route.ts` → `lib/gemini.ts`）でのみ参照します。`server-only` パッケージでガードしており、クライアントバンドルには含まれません。
+- **入力検証**: `/api/analyze` は入力の型・空文字・最大文字数（2000文字）を検証します。`Content-Length` が異常に大きいリクエストは、本文を読む前に `413` で拒否します（巨大ペイロードによるリソース消費対策）。
+- **XSS 対策**: Gemini の応答は `react-markdown` で描画し、HTML の生埋め込み（`rehype-raw` 等）は使用しません。応答に含まれる HTML／スクリプトはエスケープされ、実行されません。
+- **プロンプトインジェクション**: 分析対象の文章は任意のテキストであり、インジェクションの入力元になり得ます。ただし本アプリは Gemini にツール実行や機密情報へのアクセスを与えていないため、影響範囲は限定的です。
+- **データの扱い**: 入力文や履歴はサーバーに保存せず、ブラウザの localStorage のみに保存します。
+
+---
+
+## 付録：デザインシステム（Apple風 Glassmorphism）
 
 ライトモードのみ対応。ダークモードには対応しません。
 
@@ -83,13 +141,6 @@ GEMINT_API_KEY="your-api-key"
 | `EmptyState` | 初回表示時のウェルカム画面（機能紹介グリッド） |
 | `HistoryPanel` / `HistoryItemCard` | 分析履歴の一覧・選択・削除 |
 
-### トップページへ戻る導線
-
-単一ページアプリのため、以下の2箇所から入力前の状態（テキスト・結果・エラーをクリア、履歴は保持）に戻れます。
-
-- ヘッダーのロゴ／タイトルをクリック
-- 結果表示中の「新しく分析する」ボタン
-
 ### マイクロインタラクション
 
 - ボタン: `hover:scale-105`、アイコンの `hover:rotate-90`
@@ -104,14 +155,3 @@ GEMINT_API_KEY="your-api-key"
 - エラーメッセージは `role="alert"`
 - 装飾用の背景レイヤーは `aria-hidden`
 - コントラスト比は WCAG 2.1 AA を意識した配色（本文はグレー700〜900系、背景は白〜薄いグラデーション）
-
-## データ永続化
-
-localStorage キー `writing-style-analyzer:history` に、最新5件の分析結果（入力文・Markdown結果・テーマカラー・日時）を保存します（`lib/storage.ts`）。データベースは使用していません。
-
-## セキュリティ
-
-- Gemini API キーはサーバーサイド（`app/api/analyze/route.ts` → `lib/gemini.ts`）でのみ参照し、クライアントバンドルに含めないよう `server-only` パッケージでガードしています。
-- `/api/analyze` は入力文字列の型・空文字・最大文字数（2000文字）を検証し、`Content-Length` が異常に大きいリクエストは本文を読む前に `413` で拒否します（素朴な巨大ペイロードによるリソース消費対策）。
-- Gemini の応答は `react-markdown` でレンダリングしており、HTML の生埋め込み（`rehype-raw` 等）は使用していないため、応答内に含まれる HTML/スクリプトはエスケープされ実行されません。
-- 分析対象の文章はユーザーが入力した任意のテキストであり、プロンプトインジェクションの入力元にもなり得ますが、本アプリはツール実行や機密情報へのアクセスを Gemini に与えていないため影響範囲は限定的です。
